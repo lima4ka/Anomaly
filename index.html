@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Anomaly Detection Memory Game</title>
+    <style>
+        /* Parallax star background */
+        html {
+            height: 100%;
+            overflow: hidden;
+            background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+        }
+
+        .wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: -1;
+        }
+
+        #stars1,
+        #stars2,
+        #stars3 {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            pointer-events: none;
+        }
+
+        @keyframes animStar {
+            from {
+                transform: translateY(0);
+            }
+
+            to {
+                transform: translateY(-2000px);
+            }
+        }
+
+        #stars1 {
+            animation: animStar 50s linear infinite;
+            background-image: radial-gradient(1px 1px at 50px 200px, #fff, rgba(0, 0, 0, 0));
+            background-size: 100px 100px;
+        }
+
+        #stars2 {
+            animation: animStar 100s linear infinite;
+            background-image: radial-gradient(1px 1px at 150px 300px, #fff, rgba(0, 0, 0, 0));
+            background-size: 200px 200px;
+        }
+
+        #stars3 {
+            animation: animStar 150s linear infinite;
+            background-image: radial-gradient(1px 1px at 250px 100px, #fff, rgba(0, 0, 0, 0));
+            background-size: 300px 300px;
+        }
+
+        /* Main content styling */
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #fff;
+            text-align: center;
+            background: transparent;
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+
+        .gallery-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        button {
+            padding: 1px 40px;
+            background-color: rgb(254, 255, 171);
+            color: rgb(28, 57, 68);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 60px;
+        }
+
+        button:hover {
+            background-color: rgb(255, 245, 92);
+            transform: scale(1.05);
+        }
+
+        button:disabled {
+            background-color: #6e6e65;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .image-container {
+            position: relative;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-top: 40px;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            max-height: 800.9px;
+            border-radius: 4px;
+        }
+
+        .detection-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .detection-result {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            background-color: rgba(0, 0, 0, 0.7);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .show-result {
+            opacity: 1;
+        }
+
+        .anomaly {
+            color: #ff4d4d;
+            border: 2px solid #ff4d4d;
+            text-shadow: 0 0 5px #ff0000;
+        }
+
+        .normal {
+            color: #4dff4d;
+            border: 2px solid #4dff4d;
+            text-shadow: 0 0 5px #00ff00;
+        }
+
+        .highlight {
+            position: absolute;
+            background-color: rgba(255, 0, 0, 0.3);
+            border: 1px solid rgba(255, 0, 0, 0.7);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .show-highlight {
+            opacity: 1;
+        }
+
+        .scan-instruction {
+            margin-top: 10px;
+            font-style: italic;
+            color: #ccc;
+        }
+
+        #image-counter {
+            display: inline-block;
+            min-width: 60px;
+            color: #fff;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+        }
+
+        #detect-btn {
+            margin-top: 20px;
+            background-color: rgba(231, 229, 130, 0.8);
+            font-size: 18px;
+            padding: 12px 24px;
+        }
+
+        #detect-btn:hover {
+            background-color: rgb(244, 233, 81);
+        }
+
+        .score-display {
+            margin-top: 20px;
+            font-size: 18px;
+            background-color: rgba(214, 212, 184, 0.295);
+            padding: 10px 20px;
+            border-radius: 20px;
+        }
+
+        #prev-btn {
+
+        }
+
+        #next-btn {
+
+        }
+
+        .controls1 {
+
+        }
+
+        .controls2 {
+
+        }
+        .controls3 {
+
+}
+    </style>
+</head>
+
+<body>
+    <div class="wrapper">
+        <div id="stars1"></div>
+        <div id="stars2"></div>
+        <div id="stars3"></div>
+    </div>
+
+    <h1>Anomaly Detection Memory Game</h1>
+
+    <div class="gallery-container">
+        <div class="image-container">
+            <img id="current-image" src="" alt="Current image">
+            <div class="detection-overlay" id="detection-overlay"></div>
+        </div>
+
+        <button id="detect-btn">Detect Anomaly</button>
+
+        <div class="score-display">
+            Correct: <span id="correct-count">0</span> |
+            Missed: <span id="missed-count">0</span> |
+            False Alarms: <span id="false-alarm-count">0</span>
+        </div>
+        <div class="controls">
+            <div class="controls3">
+            <button id="prev-btn" disabled>⇽</button>
+        </div>
+        <div class="controls1">
+            <span id="image-counter">1/8</span>
+        </div>
+        <div class="controls2">
+            <button id="next-btn">⇾</button>
+        </div>
+    </div>
+    </div>
+
+    <script>
+        // Image data - 8 originals with 2 anomalies each
+        const imageData = [
+            {
+                original: 'https://raw.githubusercontent.com/lima4ka/Anomaly/main/Lima.jpg',
+                anomalies: [
+                    'https://raw.githubusercontent.com/lima4ka/Anomaly/main/Lima1.jpg',
+                    'https://raw.githubusercontent.com/lima4ka/Anomaly/main/Lima2.jpg'
+                ]
+            },
+            {
+                original: 'https://raw.githubusercontent.com/lima4ka/Anomaly/main/Sonya.jpg',
+                anomalies: [
+                    'https://raw.githubusercontent.com/lima4ka/Anomaly/main/Sonya1.jpg',
+                    'https://raw.githubusercontent.com/lima4ka/Anomaly/main/Sonya2.jpg'
+                ]
+            },
+            {
+                original: 'https://raw.githubusercontent.com/lima4ka/Anomaly/main/Diana.jpg',
+                anomalies: [
+                    'https://raw.githubusercontent.com/lima4ka/Anomaly/main/Diana1.jpg',
+                    'https://raw.githubusercontent.com/lima4ka/Anomaly/main/Diana2.jpg'
+                ]
+            },
+            {
+                original: 'https://raw.githubusercontent.com/lima4ka/Anomaly/main/Janiya.jpg',
+                anomalies: [
+                    'https://raw.githubusercontent.com/lima4ka/Anomaly/main/Janiya1.jpg',
+                    'https://raw.githubusercontent.com/lima4ka/Anomaly/main/Janiya2.jpg'
+                ]
+            },
+            {
+                original: 'https://raw.githubusercontent.com/lima4ka/Anomaly/main/Kahtanka.jpg',
+                anomalies: [
+                    'https://raw.githubusercontent.com/lima4ka/Anomaly/main/Kahtanka1.jpg',
+                    'https://raw.githubusercontent.com/lima4ka/Anomaly/main/Kahtanka2.jpg'
+                ]
+            },
+            {
+                original: 'https://raw.githubusercontent.com/lima4ka/Anomaly/main/Lera.jpg',
+                anomalies: [
+                    'https://raw.githubusercontent.com/lima4ka/Anomaly/main/Lera1.jpg',
+                    'https://raw.githubusercontent.com/lima4ka/Anomaly/main/Lera2.jpg'
+                ]
+            },
+            {
+                original: 'https://raw.githubusercontent.com/lima4ka/Anomaly/main/Leriya.jpg',
+                anomalies: [
+                    'https://raw.githubusercontent.com/lima4ka/Anomaly/main/Leriya1.jpg',
+                    'https://raw.githubusercontent.com/lima4ka/Anomaly/main/Leriya1.jpg' // Note: Same as above, might want to fix
+                ]
+            },
+            {
+                original: 'https://raw.githubusercontent.com/lima4ka/Anomaly/main/Murka.jpg',
+                anomalies: [
+                    'https://raw.githubusercontent.com/lima4ka/Anomaly/main/Murka1.jpg',
+                    'https://raw.githubusercontent.com/lima4ka/Anomaly/main/Murka1.jpg' // Note: Same as above, might want to fix
+                ]
+            }
+        ];
+
+        // Game state
+        let currentIndex = 0;
+        let isAnomalyDisplayed = false;
+        let anomalyTimeout = null;
+        let currentAnomalyIndex = 0;
+
+        // Scores
+        let correctDetections = 0;
+        let missedAnomalies = 0;
+        let falseAlarms = 0;
+
+        // DOM elements
+        const currentImage = document.getElementById('current-image');
+        const imageCounter = document.getElementById('image-counter');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const detectionOverlay = document.getElementById('detection-overlay');
+        const scanInstruction = document.getElementById('scan-instruction');
+        const detectBtn = document.getElementById('detect-btn');
+        const correctCount = document.getElementById('correct-count');
+        const missedCount = document.getElementById('missed-count');
+        const falseAlarmCount = document.getElementById('false-alarm-count');
+
+        // Show either normal or anomaly version (15% chance for anomaly)
+        function showRandomVersion(index) {
+            // 15% chance to show anomaly when navigating
+            if (Math.random() < 0.15) {
+                // Randomly select one of the two anomaly versions
+                currentAnomalyIndex = Math.floor(Math.random() * 2);
+                currentImage.src = imageData[index].anomalies[currentAnomalyIndex];
+                isAnomalyDisplayed = true;
+
+                // Automatically revert after 3 seconds if not detected
+                anomalyTimeout = setTimeout(() => {
+                    if (isAnomalyDisplayed) {
+                        missedAnomalies++;
+                        missedCount.textContent = missedAnomalies;
+                        showNormalVersion(index);
+
+                        // Show missed message
+                        const resultDiv = document.createElement('div');
+                        resultDiv.className = 'detection-result anomaly';
+                        resultDiv.textContent = '⏱️ Missed!';
+                        detectionOverlay.appendChild(resultDiv);
+                        setTimeout(() => resultDiv.classList.add('show-result'), 50);
+                    }
+                }, 3000);
+            } else {
+                showNormalVersion(index);
+            }
+        }
+
+        function showNormalVersion(index) {
+            currentImage.src = imageData[index].original;
+            isAnomalyDisplayed = false;
+            if (anomalyTimeout) {
+                clearTimeout(anomalyTimeout);
+                anomalyTimeout = null;
+            }
+        }
+
+        // Initialize the gallery
+        function showImage(index) {
+            currentIndex = index;
+            imageCounter.textContent = `${index + 1}/${imageData.length}`;
+
+            // Update button states
+            prevBtn.disabled = index === 0;
+            nextBtn.disabled = index === imageData.length - 1;
+
+            // Clear previous detection results
+            detectionOverlay.innerHTML = '';
+
+            // Show random version (normal or anomaly)
+            showRandomVersion(index);
+        }
+
+        // Handle anomaly detection
+        function detectAnomaly() {
+            if (isAnomalyDisplayed) {
+                // Correct detection
+                correctDetections++;
+                correctCount.textContent = correctDetections;
+
+                // Show detection result
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'detection-result normal';
+                resultDiv.textContent = '✅ Correct!';
+                detectionOverlay.appendChild(resultDiv);
+                setTimeout(() => resultDiv.classList.add('show-result'), 50);
+
+                // Revert to normal image
+                showNormalVersion(currentIndex);
+            } else {
+                // False alarm
+                falseAlarms++;
+                falseAlarmCount.textContent = falseAlarms;
+
+                // Show false alarm indicator
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'detection-result anomaly';
+                resultDiv.textContent = '❌ False Alarm!';
+                detectionOverlay.appendChild(resultDiv);
+                setTimeout(() => resultDiv.classList.add('show-result'), 50);
+            }
+        }
+
+        // Navigation event handlers
+        prevBtn.addEventListener('click', () => {
+            if (currentIndex > 0) {
+                showImage(currentIndex - 1);
+            }
+        });
+
+        nextBtn.addEventListener('click', () => {
+            if (currentIndex < imageData.length - 1) {
+                showImage(currentIndex + 1);
+            }
+        });
+
+        // Detect button handler
+        detectBtn.addEventListener('click', detectAnomaly);
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' && currentIndex > 0) {
+                showImage(currentIndex - 1);
+            } else if (e.key === 'ArrowRight' && currentIndex < imageData.length - 1) {
+                showImage(currentIndex + 1);
+            } else if (e.key === ' ' || e.key === 'Spacebar') {
+                detectAnomaly();
+            }
+        });
+
+        // Initialize star background
+        function createStars() {
+            const stars1 = document.getElementById('stars1');
+            const stars2 = document.getElementById('stars2');
+            const stars3 = document.getElementById('stars3');
+
+            for (let i = 0; i < 100; i++) {
+                const star = document.createElement('div');
+                star.style.position = 'absolute';
+                star.style.width = '1px';
+                star.style.height = '1px';
+                star.style.backgroundColor = 'white';
+                star.style.borderRadius = '50%';
+                star.style.boxShadow = '0 0 2px white';
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+
+                if (i < 33) {
+                    stars1.appendChild(star);
+                } else if (i < 66) {
+                    stars2.appendChild(star);
+                } else {
+                    stars3.appendChild(star);
+                }
+            }
+        }
+
+        // Start the application
+        createStars();
+        showImage(0);
+    </script>
+</body>
+
+</html>
